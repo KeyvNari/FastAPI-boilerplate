@@ -14,6 +14,174 @@ pool: ConnectionPool | None = None
 client: Redis | None = None
 
 
+class RedisClient:
+    """Custom Redis client with pub/sub and playback status functionality."""
+
+    def __init__(self):
+        self.redis: Redis | None = None
+
+    async def connect(self, redis_url: str = "redis://localhost:6379") -> None:
+        """Connect to Redis with the given URL."""
+        if client is None:
+            raise MissingClientError("Global Redis client not initialized")
+
+        self.redis = client
+        # Test connection
+        await self.redis.ping()
+
+    async def set_playback_status(self, room_id: str, status: dict) -> None:
+        """Store current playback status for a room.
+
+        Parameters
+        ----------
+        room_id : str
+            Unique identifier for the room
+        status : dict
+            Playback status data to store
+        """
+        if self.redis is None:
+            raise MissingClientError("RedisClient not connected")
+
+        key = f"playback:{room_id}"
+        data = json.dumps(status)
+        await self.redis.set(key, data, ex=3600)  # 1 hour expiration
+
+    async def get_playback_status(self, room_id: str) -> dict | None:
+        """Get current playback status for a room.
+
+        Parameters
+        ----------
+        room_id : str
+            Unique identifier for the room
+
+        Returns
+        -------
+        dict | None
+            Playback status data if found, None otherwise
+        """
+        if self.redis is None:
+            raise MissingClientError("RedisClient not connected")
+
+        key = f"playback:{room_id}"
+        data = await self.redis.get(key)
+        return json.loads(data) if data else None
+
+    async def delete_playback_status(self, room_id: str) -> None:
+        """Delete playback status for a room.
+
+        Parameters
+        ----------
+        room_id : str
+            Unique identifier for the room
+        """
+        if self.redis is None:
+            raise MissingClientError("RedisClient not connected")
+
+        key = f"playback:{room_id}"
+        await self.redis.delete(key)
+
+    async def publish_room_event(self, room_id: str, event: dict) -> None:
+        """Publish event to room channel for pub/sub.
+
+        Parameters
+        ----------
+        room_id : str
+            Unique identifier for the room
+        event : dict
+            Event data to publish
+        """
+        if self.redis is None:
+            raise MissingClientError("RedisClient not connected")
+
+        channel = f"room:{room_id}"
+        data = json.dumps(event)
+        await self.redis.publish(channel, data)
+
+    async def set_room_data(self, room_id: str, key: str, data: dict, expiration: int = 3600) -> None:
+        """Store arbitrary room data.
+
+        Parameters
+        ----------
+        room_id : str
+            Unique identifier for the room
+        key : str
+            Key within the room namespace
+        data : dict
+            Data to store
+        expiration : int
+            Expiration time in seconds (default 1 hour)
+        """
+        if self.redis is None:
+            raise MissingClientError("RedisClient not connected")
+
+        cache_key = f"room:{room_id}:{key}"
+        serialized_data = json.dumps(data)
+        await self.redis.set(cache_key, serialized_data, ex=expiration)
+
+    async def get_room_data(self, room_id: str, key: str) -> dict | None:
+        """Get arbitrary room data.
+
+        Parameters
+        ----------
+        room_id : str
+            Unique identifier for the room
+        key : str
+            Key within the room namespace
+
+        Returns
+        -------
+        dict | None
+            Stored data if found, None otherwise
+        """
+        if self.redis is None:
+            raise MissingClientError("RedisClient not connected")
+
+        cache_key = f"room:{room_id}:{key}"
+        data = await self.redis.get(cache_key)
+        return json.loads(data) if data else None
+
+    async def delete_room_data(self, room_id: str, key: str) -> None:
+        """Delete specific room data.
+
+        Parameters
+        ----------
+        room_id : str
+            Unique identifier for the room
+        key : str
+            Key within the room namespace
+        """
+        if self.redis is None:
+            raise MissingClientError("RedisClient not connected")
+
+        cache_key = f"room:{room_id}:{key}"
+        await self.redis.delete(cache_key)
+
+    async def get_room_keys(self, room_id: str) -> list[str]:
+        """Get all keys for a specific room.
+
+        Parameters
+        ----------
+        room_id : str
+            Unique identifier for the room
+
+        Returns
+        -------
+        list[str]
+            List of keys for the room
+        """
+        if self.redis is None:
+            raise MissingClientError("RedisClient not connected")
+
+        pattern = f"room:{room_id}:*"
+        keys = await self.redis.keys(pattern)
+        # Remove the room prefix to return just the key names
+        return [key.decode().replace(f"room:{room_id}:", "") for key in keys]
+
+
+# Global RedisClient instance
+redis_client = RedisClient()
+
+
 def _infer_resource_id(kwargs: dict[str, Any], resource_id_type: type | tuple[type, ...]) -> int | str:
     """Infer the resource ID from a dictionary of keyword arguments.
 

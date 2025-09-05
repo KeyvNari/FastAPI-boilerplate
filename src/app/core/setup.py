@@ -42,6 +42,9 @@ async def create_redis_cache_pool() -> None:
     cache.pool = redis.ConnectionPool.from_url(settings.REDIS_CACHE_URL)
     cache.client = redis.Redis.from_pool(cache.pool)  # type: ignore
 
+    # Initialize the custom RedisClient
+    await cache.redis_client.connect(settings.REDIS_CACHE_URL)
+
 
 async def close_redis_cache_pool() -> None:
     if cache.client is not None:
