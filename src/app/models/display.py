@@ -14,15 +14,15 @@ class Display(Base):
    name: Mapped[str] = mapped_column(String, nullable=False, default="Untitled Display")
    
    # Logo Configuration
-   logo_image: Mapped[str | None] = mapped_column(String, nullable=True) # base64
+   logo_image: Mapped[str | None] = mapped_column(String, nullable=True, default=None) # base64
    logo_size_percent: Mapped[int | None] = mapped_column(nullable=True, default=60)
    logo_position: Mapped[str | None] = mapped_column(String, nullable=True, default="top_left")  # top_left, top_right, bottom_left, bottom_right
    
    # Timer Configuration
    timer_format: Mapped[str | None] = mapped_column(String, nullable=True, default="hhh:mmm:ss")  # hhh:mm:ss, mm:ss, ss
    timer_font_family: Mapped[str | None] = mapped_column(String, nullable=True, default="Inter")
-   timer_color: Mapped[str | None] = mapped_column(String, nullable=True)
-   time_of_day_color: Mapped[str | None] = mapped_column(String, nullable=True)
+   timer_color: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+   time_of_day_color: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
    timer_text_style: Mapped[str | None] = mapped_column(String, nullable=True, default="default")  # default, outline, shadow
    timer_size_percent: Mapped[int | None] = mapped_column(default=100)
    timer_position: Mapped[str | None] = mapped_column(default="center")
@@ -31,21 +31,21 @@ class Display(Base):
    # Clock Configuration
    clock_format: Mapped[str | None] = mapped_column(String, nullable=True, default="browser_default")
    clock_font_family: Mapped[str | None] = mapped_column(String, nullable=True, default="Inter")
-   clock_color: Mapped[str | None] = mapped_column(String, nullable=True)
+   clock_color: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
    clock_visible: Mapped[bool] = mapped_column(default=True)
    
    # Message Configuration
    message_font_family: Mapped[str | None] = mapped_column(String, nullable=True, default="Inter")
-   message_color: Mapped[str | None] = mapped_column(String, nullable=True)
+   message_color: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
    
    # Header/Footer Configuration
    title_display_location: Mapped[str | None] = mapped_column(String, nullable=True, default="header")  # header, footer, hidden
    speaker_display_location: Mapped[str | None] = mapped_column(String, nullable=True, default="footer")
    next_cue_display_location: Mapped[str | None] = mapped_column(String, nullable=True, default="header")
    header_font_family: Mapped[str | None] = mapped_column(String, nullable=True, default="Inter")
-   header_color: Mapped[str | None] = mapped_column(String, nullable=True)
+   header_color: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
    footer_font_family: Mapped[str | None] = mapped_column(String, nullable=True, default="Inter")
-   footer_color: Mapped[str | None] = mapped_column(String, nullable=True)
+   footer_color: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
    
    # Theme and Styling
    theme_name: Mapped[str | None] = mapped_column(String, nullable=True, default="default")
@@ -53,15 +53,15 @@ class Display(Base):
    
    # Background Configuration
    background_type: Mapped[str | None] = mapped_column(String, nullable=True, default="color")  # image, color, transparent, preset
-   background_color: Mapped[str | None] = mapped_column(String, nullable=True)
-   background_image: Mapped[str | None] = mapped_column(String, nullable=True) # base64
-   background_preset: Mapped[str | None] = mapped_column(String, nullable=True)  # corporate, parchment, crowd, etc.
+   background_color: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+   background_image: Mapped[str | None] = mapped_column(String, nullable=True, default=None) # base64
+   background_preset: Mapped[str | None] = mapped_column(String, nullable=True, default=None)  # corporate, parchment, crowd, etc.
    
    # Progress Bar Configuration
    progress_style: Mapped[str | None] = mapped_column(String, nullable=True, default="bottom_bar")  # bottom_bar, top_bar, ring, hidden
-   progress_color_main: Mapped[str | None] = mapped_column(String, nullable=True)
-   progress_color_secondary: Mapped[str | None] = mapped_column(String, nullable=True)
-   progress_color_tertiary: Mapped[str | None] = mapped_column(String, nullable=True)
+   progress_color_main: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+   progress_color_secondary: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+   progress_color_tertiary: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
    
    # Timestamps
    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default_factory=lambda: datetime.now(UTC))
