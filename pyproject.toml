@@ -11,7 +11,7 @@ dependencies = [
     "pydantic[email]>=2.6.1",
     "fastapi>=0.109.1",
     "uvicorn>=0.27.0",
-    "uvloop>=0.19.0",
+    "uvloop>=0.19.0; sys_platform != 'win32'",
     "httptools>=0.6.1",
     "uuid>=1.30",
     "alembic>=1.13.1",
@@ -32,7 +32,8 @@ dependencies = [
     "gunicorn>=23.0.0",
     "ruff>=0.11.13",
     "mypy>=1.16.0",
-    "code2prompt>=0.8.1"
+    "code2prompt>=0.8.1",
+    "faker>=37.3.0",
 ]
 
 [project.optional-dependencies]

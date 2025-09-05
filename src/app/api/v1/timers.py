@@ -10,157 +10,121 @@ from ...core.exceptions.http_exceptions import ForbiddenException, NotFoundExcep
 from ...core.utils.cache import cache
 from ...crud.crud_timer import crud_timer
 from ...crud.crud_users import crud_users
-from ...schemas.room import RoomCreate, RoomCreateInternal, RoomRead, RoomUpdate
 from ...schemas.timer import TimerCreate, TimerCreateInternal, TimerRead, TimerUpdate
 from ...schemas.user import UserRead
 
 router = APIRouter(tags=["timers"])
 
 
+@router.post("/timer", response_model=TimerRead, status_code=201)
+async def create_timer(
+    request: Request,
+    timer: TimerCreate,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> TimerRead:
+    timer_internal_dict = timer.model_dump()
+    timer_internal_dict["created_by_user_id"] = current_user["id"]
 
-# @router.post("/{username}/post", response_model=PostRead, status_code=201)
-# async def write_post(
-#     request: Request,
-#     username: str,
-#     post: PostCreate,
-#     current_user: Annotated[dict, Depends(get_current_user)],
-#     db: Annotated[AsyncSession, Depends(async_get_db)],
-# ) -> PostRead:
-#     db_user = await crud_users.get(db=db, username=username, is_deleted=False, schema_to_select=UserRead,
-#                                    return_as_model=True)
-#     if db_user is None:
-#         raise NotFoundException("User not found")
+    timer_internal = TimerCreateInternal(**timer_internal_dict)
+    created_timer = await crud_timer.create(db=db, object=timer_internal)
 
-#     db_user = cast(UserRead, db_user)
-#     if current_user["id"] != db_user.id:
-#         raise ForbiddenException()
+    timer_read = await crud_timer.get(db=db, id=created_timer.id, schema_to_select=TimerRead)
+    if timer_read is None:
+        raise NotFoundException("Created timer not found")
 
-#     post_internal_dict = post.model_dump()
-#     post_internal_dict["created_by_user_id"] = db_user.id
-
-#     post_internal = PostCreateInternal(**post_internal_dict)
-#     created_post = await crud_posts.create(db=db, object=post_internal)
-
-#     post_read = await crud_posts.get(db=db, id=created_post.id, schema_to_select=PostRead)
-#     if post_read is None:
-#         raise NotFoundException("Created post not found")
-
-#     return cast(PostRead, post_read)
+    return cast(TimerRead, timer_read)
 
 
-# @router.get("/{username}/posts", response_model=PaginatedListResponse[PostRead])
-# @cache(
-#     key_prefix="{username}_posts:page_{page}:items_per_page:{items_per_page}",
-#     resource_id_name="username",
-#     expiration=60,
-# )
-# async def read_posts(
-#     request: Request,
-#     username: str,
-#     db: Annotated[AsyncSession, Depends(async_get_db)],
-#     page: int = 1,
-#     items_per_page: int = 10,
-# ) -> dict:
-#     db_user = await crud_users.get(db=db, username=username, is_deleted=False, schema_to_select=UserRead)
-#     if not db_user:
-#         raise NotFoundException("User not found")
+@router.get("/timers", response_model=PaginatedListResponse[TimerRead])
+@cache(
+    key_prefix="user_{current_user_id}_timers:page_{page}:items_per_page:{items_per_page}",
+    resource_id_name="current_user_id",
+    expiration=60,
+)
+async def read_timers(
+    request: Request,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+    page: int = 1,
+    items_per_page: int = 10,
+) -> dict:
+    timers_data = await crud_timer.get_multi(
+        db=db,
+        offset=compute_offset(page, items_per_page),
+        limit=items_per_page,
+        created_by_user_id=current_user["id"],
+        is_deleted=False,
+    )
 
-#     db_user = cast(UserRead, db_user)
-#     posts_data = await crud_posts.get_multi(
-#         db=db,
-#         offset=compute_offset(page, items_per_page),
-#         limit=items_per_page,
-#         created_by_user_id=db_user.id,
-#         is_deleted=False,
-#     )
-
-#     response: dict[str, Any] = paginated_response(crud_data=posts_data, page=page, items_per_page=items_per_page)
-#     return response
+    response: dict[str, Any] = paginated_response(crud_data=timers_data, page=page, items_per_page=items_per_page)
+    return response
 
 
-# @router.get("/{username}/post/{id}", response_model=PostRead)
-# @cache(key_prefix="{username}_post_cache", resource_id_name="id")
-# async def read_post(
-#     request: Request, username: str, id: int, db: Annotated[AsyncSession, Depends(async_get_db)]
-# ) -> PostRead:
-#     db_user = await crud_users.get(db=db, username=username, is_deleted=False, schema_to_select=UserRead)
-#     if db_user is None:
-#         raise NotFoundException("User not found")
+@router.get("/timer/{timer_id}", response_model=TimerRead)
+@cache(key_prefix="user_{current_user_id}_timer_{timer_id}", resource_id_name="timer_id")
+async def read_timer(
+    request: Request, timer_id: int, current_user: Annotated[dict, Depends(get_current_user)], db: Annotated[AsyncSession, Depends(async_get_db)]
+) -> TimerRead:
+    db_timer = await crud_timer.get(
+        db=db, id=timer_id, created_by_user_id=current_user["id"], is_deleted=False, schema_to_select=TimerRead
+    )
+    if db_timer is None:
+        raise NotFoundException("Timer not found")
 
-#     db_user = cast(UserRead, db_user)
-#     db_post = await crud_posts.get(
-#         db=db, id=id, created_by_user_id=db_user.id, is_deleted=False, schema_to_select=PostRead
-#     )
-#     if db_post is None:
-#         raise NotFoundException("Post not found")
-
-#     return cast(PostRead, db_post)
+    return cast(TimerRead, db_timer)
 
 
-# @router.patch("/{username}/post/{id}")
-# @cache("{username}_post_cache", resource_id_name="id", pattern_to_invalidate_extra=["{username}_posts:*"])
-# async def patch_post(
-#     request: Request,
-#     username: str,
-#     id: int,
-#     values: PostUpdate,
-#     current_user: Annotated[dict, Depends(get_current_user)],
-#     db: Annotated[AsyncSession, Depends(async_get_db)],
-# ) -> dict[str, str]:
-#     db_user = await crud_users.get(db=db, username=username, is_deleted=False, schema_to_select=UserRead)
-#     if db_user is None:
-#         raise NotFoundException("User not found")
+@router.patch("/timer/{timer_id}")
+@cache("user_{current_user_id}_timer_{timer_id}", resource_id_name="timer_id", pattern_to_invalidate_extra=["user_{current_user_id}_timers:*"])
+async def update_timer(
+    request: Request,
+    timer_id: int,
+    values: TimerUpdate,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> dict[str, str]:
+    db_timer = await crud_timer.get(db=db, id=timer_id, is_deleted=False, schema_to_select=TimerRead)
+    if db_timer is None:
+        raise NotFoundException("Timer not found")
 
-#     db_user = cast(UserRead, db_user)
-#     if current_user["id"] != db_user.id:
-#         raise ForbiddenException()
+    # Check if current user owns the timer
+    if db_timer.created_by_user_id != current_user["id"]:
+        raise ForbiddenException()
 
-#     db_post = await crud_posts.get(db=db, id=id, is_deleted=False, schema_to_select=PostRead)
-#     if db_post is None:
-#         raise NotFoundException("Post not found")
-
-#     await crud_posts.update(db=db, object=values, id=id)
-#     return {"message": "Post updated"}
+    await crud_timer.update(db=db, object=values, id=timer_id)
+    return {"message": "Timer updated"}
 
 
-# @router.delete("/{username}/post/{id}")
-# @cache("{username}_post_cache", resource_id_name="id", to_invalidate_extra={"{username}_posts": "{username}"})
-# async def erase_post(
-#     request: Request,
-#     username: str,
-#     id: int,
-#     current_user: Annotated[dict, Depends(get_current_user)],
-#     db: Annotated[AsyncSession, Depends(async_get_db)],
-# ) -> dict[str, str]:
-#     db_user = await crud_users.get(db=db, username=username, is_deleted=False, schema_to_select=UserRead)
-#     if db_user is None:
-#         raise NotFoundException("User not found")
+@router.delete("/timer/{timer_id}")
+@cache("user_{current_user_id}_timer_{timer_id}", resource_id_name="timer_id", to_invalidate_extra={"user_{current_user_id}_timers": "{current_user_id}"})
+async def delete_timer(
+    request: Request,
+    timer_id: int,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> dict[str, str]:
+    db_timer = await crud_timer.get(db=db, id=timer_id, is_deleted=False, schema_to_select=TimerRead)
+    if db_timer is None:
+        raise NotFoundException("Timer not found")
 
-#     db_user = cast(UserRead, db_user)
-#     if current_user["id"] != db_user.id:
-#         raise ForbiddenException()
+    # Check if current user owns the timer
+    if db_timer.created_by_user_id != current_user["id"]:
+        raise ForbiddenException()
 
-#     db_post = await crud_posts.get(db=db, id=id, is_deleted=False, schema_to_select=PostRead)
-#     if db_post is None:
-#         raise NotFoundException("Post not found")
+    await crud_timer.delete(db=db, id=timer_id)
 
-#     await crud_posts.delete(db=db, id=id)
-
-#     return {"message": "Post deleted"}
+    return {"message": "Timer deleted"}
 
 
-# @router.delete("/{username}/db_post/{id}", dependencies=[Depends(get_current_superuser)])
-# @cache("{username}_post_cache", resource_id_name="id", to_invalidate_extra={"{username}_posts": "{username}"})
-# async def erase_db_post(
-#     request: Request, username: str, id: int, db: Annotated[AsyncSession, Depends(async_get_db)]
-# ) -> dict[str, str]:
-#     db_user = await crud_users.get(db=db, username=username, is_deleted=False, schema_to_select=UserRead)
-#     if db_user is None:
-#         raise NotFoundException("User not found")
+@router.delete("/timer/db/{timer_id}", dependencies=[Depends(get_current_superuser)])
+@cache("user_{current_user_id}_timer_{timer_id}", resource_id_name="timer_id", to_invalidate_extra={"user_{current_user_id}_timers": "user_{current_user_id}"})
+async def erase_timer_from_db(
+    request: Request, timer_id: int, db: Annotated[AsyncSession, Depends(async_get_db)]
+) -> dict[str, str]:
+    db_timer = await crud_timer.get(db=db, id=timer_id, is_deleted=False, schema_to_select=TimerRead)
+    if db_timer is None:
+        raise NotFoundException("Timer not found")
 
-#     db_post = await crud_posts.get(db=db, id=id, is_deleted=False, schema_to_select=PostRead)
-#     if db_post is None:
-#         raise NotFoundException("Post not found")
-
-#     await crud_posts.db_delete(db=db, id=id)
-#     return {"message": "Post deleted from the database"}
+    await crud_timer.db_delete(db=db, id=timer_id)
+    return {"message": "Timer deleted from the database"}

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.core.utils.cache import redis_client
+from src.app.core.utils.cache import redis_client
 
 router = APIRouter(prefix="/playback", tags=["playback"])
 
