@@ -8,9 +8,19 @@ from ..core.security import get_password_hash
 from ..models.post import Post
 from ..models.tier import Tier
 from ..models.user import User
+from ..models.display import Display
+from ..models.plan import Plan
+from ..models.plan_feature import PlanFeature
+from ..models.room import Room
+from ..models.timer import Timer
 from ..schemas.post import PostUpdate
 from ..schemas.tier import TierCreate, TierUpdate
 from ..schemas.user import UserCreate, UserUpdate
+from ..schemas.display import DisplayCreate, DisplayUpdate
+from ..schemas.plan import PlanCreate, PlanUpdate
+from ..schemas.plan_feature import PlanFeatureCreate, PlanFeatureUpdate
+from ..schemas.room import RoomCreate, RoomUpdate
+from ..schemas.timer import TimerCreate, TimerUpdate
 
 
 class PostCreateAdmin(BaseModel):
@@ -58,3 +68,36 @@ def register_admin_views(admin: CRUDAdmin) -> None:
         update_schema=PostUpdate,
         allowed_actions={"view", "create", "update", "delete"},
     )
+    admin.add_view(
+        model=Display,
+        create_schema=DisplayCreate,
+        update_schema=DisplayUpdate,
+
+        allowed_actions={"view", "create", "update", "delete"},
+    )
+    admin.add_view(
+        model=Plan,
+        create_schema=PlanCreate,
+        update_schema=PlanUpdate,
+
+        allowed_actions={"view", "create", "update", "delete"},
+    )
+    admin.add_view(
+        model=PlanFeature,
+        create_schema=PlanFeatureCreate,
+        update_schema=PlanFeatureUpdate,
+        allowed_actions={"view", "create", "update", "delete"},
+    )
+    admin.add_view(
+        model=Room,
+        create_schema=RoomCreate,
+        update_schema=RoomUpdate,
+        allowed_actions={"view", "create", "update", "delete"},
+    )
+    admin.add_view(
+        model=Timer,
+        create_schema=TimerCreate,
+        update_schema=TimerUpdate,
+        allowed_actions={"view", "create", "update", "delete"},
+    )
+
