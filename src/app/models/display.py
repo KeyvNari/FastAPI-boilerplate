@@ -14,7 +14,7 @@ class Display(Base):
    name: Mapped[str] = mapped_column(String, nullable=False, default="Untitled Display")
    
    # Logo Configuration
-   logo_image: Mapped[str | None] = mapped_column(String, nullable=True)
+   logo_image: Mapped[str | None] = mapped_column(String, nullable=True) # base64
    logo_size_percent: Mapped[int | None] = mapped_column(nullable=True, default=60)
    logo_position: Mapped[str | None] = mapped_column(String, nullable=True, default="top_left")  # top_left, top_right, bottom_left, bottom_right
    
@@ -27,7 +27,7 @@ class Display(Base):
    timer_size_percent: Mapped[int | None] = mapped_column(default=100)
    timer_position: Mapped[str | None] = mapped_column(default="center")
    auto_hide_completed: Mapped[bool] = mapped_column(default=False)
-   
+
    # Clock Configuration
    clock_format: Mapped[str | None] = mapped_column(String, nullable=True, default="browser_default")
    clock_font_family: Mapped[str | None] = mapped_column(String, nullable=True, default="Inter")
@@ -54,7 +54,7 @@ class Display(Base):
    # Background Configuration
    background_type: Mapped[str | None] = mapped_column(String, nullable=True, default="color")  # image, color, transparent, preset
    background_color: Mapped[str | None] = mapped_column(String, nullable=True)
-   background_image: Mapped[str | None] = mapped_column(String, nullable=True)
+   background_image: Mapped[str | None] = mapped_column(String, nullable=True) # base64
    background_preset: Mapped[str | None] = mapped_column(String, nullable=True)  # corporate, parchment, crowd, etc.
    
    # Progress Bar Configuration
