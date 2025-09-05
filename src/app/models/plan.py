@@ -14,6 +14,7 @@ class Plan(Base):
     price_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     interval: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    currency: Mapped[str] = mapped_column(String, nullable=False, default="EUR")
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default_factory=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
